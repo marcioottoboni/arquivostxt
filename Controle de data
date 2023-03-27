@@ -1,41 +1,65 @@
-# Importacao
 from calendar import month
 from datetime import date
 import os
 import datetime
-#-----------------------------------------------------------------------------------------------
-#Variaveis
-numero_dias  = 90
-#data_inicio = date.today() - datetime.timedelta(days=numero_dias)
-data_inicio = date.today()  
-
-arquivo = open(f'QRY.txt', 'r') 
-arquivo_teste = open(f'Arquivo{str(numero_dias)}.txt','x')
-lista = arquivo.readlines()
-
-while numero_dias > 0:
-    data_passo    = data_inicio - datetime.timedelta(days=numero_dias)
-    data_particao = data_inicio - datetime.timedelta(days=(numero_dias-1))
-    for i, line in enumerate(lista, 1):
-        if 'FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_MMDDYYYY) PT' in line:            
-            line = line.replace('FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_MMDDYYYY) PT',f'FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_{data_particao.strftime("%m")}{data_particao.strftime("%d")}{data_particao.strftime("%Y")}) PT')    
-            arquivo_teste.writelines(line)
-        elif "AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00', 'DD/MM/YYYY HH24:MI:SS')" in line:
-            line = line.replace("AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00', 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM >= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} 00:00:00', 'DD/MM/YYYY HH24:MI:SS')")    
-            arquivo_teste.writelines(line)
-        elif "AND PT.DE7_TRAN_DTTM <= to_date ('DD/MM/YYYY 23:59:59', 'DD/MM/YYYY HH24:MI:SS')" in line:
-            line = line.replace("AND PT.DE7_TRAN_DTTM <= to_date ('DD/MM/YYYY 23:59:59', 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM <= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} 23:59:59', 'DD/MM/YYYY HH24:MI:SS')")    
-            arquivo_teste.writelines(line)
+from datetime import datetime, timedelta
+#C:\Users\e070800\OneDrive - Mastercard\Documents\Python\Gerenciar Arquivos com Python\AAA.txt
+def divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes):
+    arquivo_leitura  = open(os.path.join(sql_base),'r')
+    lista =  arquivo_leitura.readlines()
+    lista_teste  = data_inicio.split("/")
+    data_inicio = datetime(int(lista_teste[2]),int(lista_teste[1]),int(lista_teste[0]))
+    
+    data_passo = data_inicio -  timedelta(days= qtd_particoes) 
+    data_particao =  data_passo + timedelta(days= 1) 
+   
+    while qtd_particoes > 0:
+        if tipo_particoes == "D":
+            data_passo = data_inicio -  timedelta(days= qtd_particoes) 
+            data_particao =  data_passo + timedelta(days= 1) 
+        elif tipo_particoes == "H":
+            data_passo = data_inicio -  timedelta(hours= qtd_particoes) 
+            data_particao =  data_passo + timedelta(days= 1) 
+        elif tipo_particoes == "M":
+            data_passo = data_inicio -  timedelta(minutes= qtd_particoes) 
+            data_particao =  data_passo + timedelta(days= 1) 
         else:
-            line = line
-            arquivo_teste.writelines(line)
-    arquivo_teste.writelines(';')
-    arquivo_teste.writelines('\n')
-    arquivo_teste.writelines('--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    arquivo_teste.writelines('\n')
-
-    numero_dias -= 1
-arquivo.close()
+            print(f'Tipo de particao incorreto!')
+        arquivo_filtrado = open(f'{qtd_particoes}.txt','x') 
+        for i, line in enumerate(lista, 1):
+                if 'FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_MMDDYYYY) PT' in line:            
+                    line = line.replace('FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_MMDDYYYY) PT',f'FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_{data_particao.strftime("%m")}{data_particao.strftime("%d")}{data_particao.strftime("%Y")}) PT')    
+                    arquivo_filtrado.writelines(line)
+                elif "AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00, 'DD/MM/YYYY HH24:MI:SS')" in line:
+                    line = line.replace("AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00, 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM >= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} 00:00:00', 'DD/MM/YYYY HH24:MI:SS')")    
+                    arquivo_filtrado.writelines(line)
+                elif "AND PT.DE7_TRAN_DTTM <= to_date ('DD/DD/YYYY 23:59:59', 'DD/MM/YYYY HH24:MI:SS')" in line:
+                    line = line.replace("AND PT.DE7_TRAN_DTTM <= to_date ('DD/DD/YYYY 23:59:59', 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM <= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} 23:59:59', 'DD/MM/YYYY HH24:MI:SS')")    
+                    arquivo_filtrado.writelines(line)
+                else:
+                    line = line
+                    arquivo_filtrado.writelines(line)
+        qtd_particoes -= 1
+sql_base       = input(f'Digite o caminho do script SQL que sera utilizado como base para o particionamento')
+data_inicio    = input(f'Digite a data inicio no formato DD/MM/YYYY para que as particoes sejam criadas')
+qtd_particoes  = int(input(f'Digite a  quantidade de particoes'))
+tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
+while tipo_particoes != "S":
+    if tipo_particoes == "D": 
+        print(f'O tipo digitado foi {tipo_particoes}')
+        divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes)
+        tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
+    elif tipo_particoes == "H":
+        print(f'O tipo digitado foi {tipo_particoes}')
+        divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes)
+        tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
+    elif tipo_particoes == "M":
+        print(f'O tipo digitado foi {tipo_particoes}')
+        divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes)
+        tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
+    else:
+        print(f'Digite "D" P/ particionar a query de dia em dia\n     "H" P/ particionar a query de hora em hora\n     M P/ particionar a query de minuto em minuto ou "S" para sair!')
+        tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
 
 
 
