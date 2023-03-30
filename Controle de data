@@ -27,15 +27,33 @@ def divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes):
             print(f'Tipo de particao incorreto!')
         arquivo_filtrado = open(f'{qtd_particoes}.txt','x') 
         for i, line in enumerate(lista, 1):
-                if 'FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_MMDDYYYY) PT' in line:            
+                if 'FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_MMDDYYYY) PT' in line:
                     line = line.replace('FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_MMDDYYYY) PT',f'FROM RDR_OWNER.PROCESSED_TRAN PARTITION(PROC_TRAN_{data_particao.strftime("%m")}{data_particao.strftime("%d")}{data_particao.strftime("%Y")}) PT')    
                     arquivo_filtrado.writelines(line)
-                elif "AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00, 'DD/MM/YYYY HH24:MI:SS')" in line:
-                    line = line.replace("AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00, 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM >= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} 00:00:00', 'DD/MM/YYYY HH24:MI:SS')")    
-                    arquivo_filtrado.writelines(line)
+                elif "AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00, 'DD/MM/YYYY HH24:MI:SS')" in line:                    
+                    if  tipo_particoes == "D":
+                        line = line.replace("AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00, 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM >= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} 00:00:00', 'DD/MM/YYYY HH24:MI:SS')")    
+                        arquivo_filtrado.writelines(line)
+                    elif tipo_particoes == "H":
+                        line = line.replace("AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00, 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM >= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} {data_passo.strftime('%H')}:00:00', 'DD/MM/YYYY HH24:MI:SS')")    
+                        arquivo_filtrado.writelines(line)
+                    elif tipo_particoes == "M":
+                        line = line.replace("AND PT.DE7_TRAN_DTTM >= to_date ('DD/MM/YYYY 00:00:00, 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM >= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} {data_passo.strftime('%H')}:{data_passo.strftime('%M')}:00', 'DD/MM/YYYY HH24:MI:SS')")    
+                        arquivo_filtrado.writelines(line)
+                    else:
+                        arquivo_filtrado.writelines(line)
                 elif "AND PT.DE7_TRAN_DTTM <= to_date ('DD/DD/YYYY 23:59:59', 'DD/MM/YYYY HH24:MI:SS')" in line:
-                    line = line.replace("AND PT.DE7_TRAN_DTTM <= to_date ('DD/DD/YYYY 23:59:59', 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM <= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} 23:59:59', 'DD/MM/YYYY HH24:MI:SS')")    
-                    arquivo_filtrado.writelines(line)
+                    if  tipo_particoes == "D":
+                        line = line.replace("AND PT.DE7_TRAN_DTTM <= to_date ('DD/DD/YYYY 23:59:59', 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM <= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} 23:59:59', 'DD/MM/YYYY HH24:MI:SS')")    
+                        arquivo_filtrado.writelines(line)
+                    elif tipo_particoes == "H":
+                        line = line.replace("AND PT.DE7_TRAN_DTTM <= to_date ('DD/DD/YYYY 23:59:59', 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM <= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} {data_passo.strftime('%H')}:59:59', 'DD/MM/YYYY HH24:MI:SS')")    
+                        arquivo_filtrado.writelines(line)
+                    elif tipo_particoes == "M":
+                        line = line.replace("AND PT.DE7_TRAN_DTTM <= to_date ('DD/DD/YYYY 23:59:59', 'DD/MM/YYYY HH24:MI:SS')",f"AND PT.DE7_TRAN_DTTM <= to_date ('{data_passo.strftime('%d')}/{data_passo.strftime('%m')}/{data_passo.strftime('%Y')} {data_passo.strftime('%H')}:{data_passo.strftime('%M')}:59', 'DD/MM/YYYY HH24:MI:SS')")    
+                        arquivo_filtrado.writelines(line)
+                    else:   
+                        arquivo_filtrado.writelines(line)
                 else:
                     line = line
                     arquivo_filtrado.writelines(line)
@@ -60,7 +78,3 @@ while tipo_particoes != "S":
     else:
         print(f'Digite "D" P/ particionar a query de dia em dia\n     "H" P/ particionar a query de hora em hora\n     M P/ particionar a query de minuto em minuto ou "S" para sair!')
         tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
-
-
-
-
