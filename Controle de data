@@ -3,8 +3,11 @@ from datetime import date
 import os
 import datetime
 from datetime import datetime, timedelta
-#C:\Users\e070800\OneDrive - Mastercard\Documents\Python\Gerenciar Arquivos com Python\AAA.txt
-def divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes):
+import csv
+import openpyxl
+#=================================================================================================================================================================
+def particiona(sql_base,data_inicio,qtd_particoes,tipo_particoes):
+    print(f'Parametros pasados\n  sql_base-> {sql_base}\n   data_inicio-> {data_inicio}\n   qtd_particoes-> {qtd_particoes}\n   tipo_particoes=> {tipo_particoes}')
     arquivo_leitura  = open(os.path.join(sql_base),'r')
     lista =  arquivo_leitura.readlines()
     lista_teste  = data_inicio.split("/")
@@ -58,23 +61,56 @@ def divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes):
                     line = line
                     arquivo_filtrado.writelines(line)
         qtd_particoes -= 1
-sql_base       = input(f'Digite o caminho do script SQL que sera utilizado como base para o particionamento')
-data_inicio    = input(f'Digite a data inicio no formato DD/MM/YYYY para que as particoes sejam criadas')
-qtd_particoes  = int(input(f'Digite a  quantidade de particoes'))
-tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
-while tipo_particoes != "S":
-    if tipo_particoes == "D": 
-        print(f'O tipo digitado foi {tipo_particoes}')
-        divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes)
-        tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
-    elif tipo_particoes == "H":
-        print(f'O tipo digitado foi {tipo_particoes}')
-        divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes)
-        tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
-    elif tipo_particoes == "M":
-        print(f'O tipo digitado foi {tipo_particoes}')
-        divide_por(sql_base,qtd_particoes,data_inicio,tipo_particoes)
-        tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
-    else:
-        print(f'Digite "D" P/ particionar a query de dia em dia\n     "H" P/ particionar a query de hora em hora\n     M P/ particionar a query de minuto em minuto ou "S" para sair!')
-        tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
+def unifica(pasta,script_base):
+    # Criar um objeto Workbook do openpyxl
+    workbook = openpyxl.Workbook()
+    # Iterar sobre todos os arquivos na pasta
+    for filename in os.listdir(pasta):
+        if filename.endswith(".txt"):
+            # Abrir o arquivo texto
+            with open(os.path.join(pasta, filename), "r") as arquivo:
+                # Ler o conteúdo do arquivo e dividir em linhas
+                conteudo = arquivo.read()
+                linhas = conteudo.split("\n")
+                # Criar um objeto Worksheet do openpyxl com o nome
+                worksheet = workbook.create_sheet(title=filename)
+                # Adicionar os cabeçalhos à primeira linha da planilha
+                cabecalhos = cria_cabecalho(script_base)
+                worksheet.append(cabecalhos)
+                # Adicionar as linhas restantes à planilha
+                for linha in linhas:
+                    valores = linha.split(";")
+                    worksheet.append(valores)
+    # Salvar o arquivo Excel
+    workbook.save("resultado.xlsx")
+def cria_cabecalho(script_base):   
+    lista = []
+    with open(os.path.join(script_base), "r") as arquivo:
+        conteudo = arquivo.read()
+        linhas = conteudo.split("\n")
+        for item in linhas:
+            inicio = item.find('"') + len('"')
+            fim = item.find('"', inicio)
+            if inicio >= 0 and fim >= 0 and  item[inicio:fim]  != ';':
+                print(item[inicio:fim])
+                lista += [item[inicio:fim]]
+    return lista
+#=================================================================================================================================================================
+if __name__ == '__main__':
+    acao = input(f'Digite:  \n(1) Para criar multiplas particoes utilizando um script!\n(2) Parar unificar os arquivos criados pelo toad')
+    while acao == "1" or acao == "2" :
+        if acao == "1":
+            sql_base       = input(f'Digite o caminho do script SQL que sera utilizado como base para o particionamento')
+            data_inicio    = input(f'Digite a data inicio no formato DD/MM/YYYY para que as particoes sejam criadas')
+            qtd_particoes  = int(input(f'Digite a  quantidade de particoes'))
+            tipo_particoes = input(f'Digite "D" P/ particionar a query de dia em dia\n       "H" P/ particionar a query de hora em hora\n       "M" P/ particionar a query de minuto em minuto ou \n       "S" para sair!')
+            particiona(sql_base,data_inicio,qtd_particoes,tipo_particoes)            
+        elif acao == "2":
+            pasta       = input("Digite o caminho da pasta com os arquivos gerados pelo toad: ")
+            script_base = input("Digite o caminho e nome  da script  SQL: ")
+            unifica(pasta,script_base)           
+        else:
+            print(f'Programa finalizado digite:  \n(1) Para criar multiplas particoes utilizando um script!\n(2) Parar unificar os arquivos criados pelo toad')    
+        acao = input(f'Programa finalizado digite:  \n(1) Para criar multiplas particoes utilizando um script!\n(2) Parar unificar os arquivos criados pelo toad')    
+
+
